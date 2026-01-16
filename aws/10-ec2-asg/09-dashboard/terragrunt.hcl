@@ -40,42 +40,9 @@ inputs = {
       height = 6
       properties = {
         metrics = [
-          ["AWS/EC2", "CPUUtilization", { stat = "Average", label = "Avg CPU" }],
-          [".", ".", { stat = "Maximum", label = "Max CPU" }]
-        ]
-        period = 60
-        stat   = "Average"
-        region = "ca-central-1"
-        title  = "EC2 CPU Utilization"
-        yAxis = {
-          left = { min = 0, max = 100 }
-        }
-      }
-    },
-    {
-      type   = "metric"
-      width  = 6
-      height = 6
-      properties = {
-        metrics = [
-          ["AWS/ApplicationELB", "RequestCount", { stat = "Sum", label = "Total RPS" }],
-          [".", "TargetResponseTime", { stat = "Average", label = "Response Time (s)" }]
-        ]
-        period = 60
-        stat   = "Average"
-        region = "ca-central-1"
-        title  = "ALB Requests & Response Time"
-      }
-    },
-    {
-      type   = "metric"
-      width  = 6
-      height = 6
-      properties = {
-        metrics = [
-          ["AWS/AutoScaling", "GroupDesiredCapacity", { stat = "Average", label = "Desired" }],
-          [".", "GroupInServiceInstances", { stat = "Average", label = "In Service" }],
-          [".", "GroupPendingInstances", { stat = "Average", label = "Pending" }]
+          ["AWS/AutoScaling", "GroupInServiceInstances", "AutoScalingGroupName", dependency.asg.outputs.asg_name, { stat = "Average", label = "In Service" }],
+          [".", "GroupDesiredCapacity", "AutoScalingGroupName", dependency.asg.outputs.asg_name, { stat = "Average", label = "Desired" }],
+          [".", "GroupPendingInstances", "AutoScalingGroupName", dependency.asg.outputs.asg_name, { stat = "Average", label = "Pending" }]
         ]
         period = 60
         stat   = "Average"
@@ -92,9 +59,42 @@ inputs = {
       height = 6
       properties = {
         metrics = [
-          ["AWS/ApplicationELB", "HTTPCode_Target_2XX_Count", { stat = "Sum", label = "2xx" }],
-          [".", "HTTPCode_Target_4XX_Count", { stat = "Sum", label = "4xx" }],
-          [".", "HTTPCode_Target_5XX_Count", { stat = "Sum", label = "5xx" }]
+          ["AWS/EC2", "CPUUtilization", "AutoScalingGroupName", dependency.asg.outputs.asg_name, { stat = "Average", label = "Avg CPU" }],
+          [".", ".", "AutoScalingGroupName", dependency.asg.outputs.asg_name, { stat = "Maximum", label = "Max CPU" }]
+        ]
+        period = 60
+        stat   = "Average"
+        region = "ca-central-1"
+        title  = "EC2 CPU Utilization"
+        yAxis = {
+          left = { min = 0, max = 100 }
+        }
+      }
+    },
+    {
+      type   = "metric"
+      width  = 6
+      height = 6
+      properties = {
+        metrics = [
+          ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", dependency.alb.outputs.alb_arn_suffix, { stat = "Sum", label = "Total RPS" }],
+          [".", "TargetResponseTime", "LoadBalancer", dependency.alb.outputs.alb_arn_suffix, { stat = "Average", label = "Response Time (s)" }]
+        ]
+        period = 60
+        stat   = "Average"
+        region = "ca-central-1"
+        title  = "ALB Requests & Response Time"
+      }
+    },
+    {
+      type   = "metric"
+      width  = 6
+      height = 6
+      properties = {
+        metrics = [
+          ["AWS/ApplicationELB", "HTTPCode_Target_2XX_Count", "TargetGroup", dependency.alb.outputs.target_group_arn_suffixes["lab-tg"], "LoadBalancer", dependency.alb.outputs.alb_arn_suffix, { stat = "Sum", label = "2xx" }],
+          [".", "HTTPCode_Target_4XX_Count", "TargetGroup", dependency.alb.outputs.target_group_arn_suffixes["lab-tg"], "LoadBalancer", dependency.alb.outputs.alb_arn_suffix, { stat = "Sum", label = "4xx" }],
+          [".", "HTTPCode_Target_5XX_Count", "TargetGroup", dependency.alb.outputs.target_group_arn_suffixes["lab-tg"], "LoadBalancer", dependency.alb.outputs.alb_arn_suffix, { stat = "Sum", label = "5xx" }]
         ]
         period = 60
         stat   = "Sum"
@@ -112,8 +112,8 @@ inputs = {
       height = 6
       properties = {
         metrics = [
-          ["AWS/ApplicationELB", "HealthyHostCount", { stat = "Average", label = "Healthy Targets" }],
-          [".", "UnHealthyHostCount", { stat = "Average", label = "Unhealthy Targets" }]
+          ["AWS/ApplicationELB", "HealthyHostCount", "TargetGroup", dependency.alb.outputs.target_group_arn_suffixes["lab-tg"], "LoadBalancer", dependency.alb.outputs.alb_arn_suffix, { stat = "Average", label = "Healthy Targets" }],
+          [".", "UnHealthyHostCount", "TargetGroup", dependency.alb.outputs.target_group_arn_suffixes["lab-tg"], "LoadBalancer", dependency.alb.outputs.alb_arn_suffix, { stat = "Average", label = "Unhealthy Targets" }]
         ]
         period = 60
         stat   = "Average"
