@@ -1,6 +1,10 @@
 # Local .terraform directories
 .terraform/
 
+# Terragrunt cache
+.terragrunt-cache/
+**/.terragrunt-cache/
+
 # .tfstate files
 *.tfstate
 *.tfstate.*
@@ -15,6 +19,11 @@ crash.*.log
 # to change depending on the environment.
 *.tfvars
 *.tfvars.json
+
+# Local plans and artifacts
+*.tfplan
+*.tfplan.*
+imagedefinitions.json
 
 # Ignore override files as they are usually used to override resources locally and so
 # are not checked in
@@ -35,3 +44,12 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+
+# macOS
+.DS_Store
