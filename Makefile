@@ -1,8 +1,13 @@
 .PHONY: help validate build deploy test-cpu test-rps test-spike test-all monitor logs destroy clean all
 
 # Configuration
-AWS_REGION ?= ca-central-1
-ECR_REPO_NAME ?= lab-target-app
+AWS_REGION := ca-central-1
+ECR_REPO_NAME := lab-scaling-peak-load-registry
+ALB_NAME      := lab-scaling-peak-load-alb
+DASHBOARD_NAME := lab-scaling-peak-load
+K6_PROMETHEUS_RW_SERVER_URL ?= http://localhost:9090/api/v1/write
+K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM ?= false
+K6_OUTPUT ?= experimental-prometheus-rw
 PROJECT_ROOT := $(shell pwd)
 CI_CD_DIR := $(PROJECT_ROOT)/aws/00-ci-cd
 ASG_DIR := $(PROJECT_ROOT)/aws/10-ec2-asg
@@ -264,58 +269,71 @@ deploy-codepipeline: deploy-codebuild ## Deploy CodePipeline (reads from .env or
 get-alb-dns: ## Get ALB DNS name
 	@echo "$(BLUE)📍 ALB DNS Name:$(NC)"
 	@aws elbv2 describe-load-balancers \
-		--names lab-alb \
+		--names $(ALB_NAME) \
 		--region $(AWS_REGION) \
 		--query 'LoadBalancers[0].DNSName' \
 		--output text 2>/dev/null || echo "$(YELLOW)⚠ ALB not found yet$(NC)"
 
 check-health: ## Check ALB health endpoint
 	@echo "$(BLUE)🏥 Checking ALB health...$(NC)"
-	@ALB_DNS=$$(aws elbv2 describe-load-balancers --names lab-alb --region $(AWS_REGION) --query 'LoadBalancers[0].DNSName' --output text 2>/dev/null) && \
-		if [ -n "$$ALB_DNS" ]; then \
-			echo "Testing: http://$$ALB_DNS/healthz"; \
-			curl -s http://$$ALB_DNS/healthz | jq . || echo "$(YELLOW)⚠ Waiting for instances to become healthy...$(NC)"; \
-		else \
-			echo "$(RED)❌ ALB not found$(NC)"; \
-			exit 1; \
-		fi
+	@bash -c 'ALB_DNS="$$(aws elbv2 describe-load-balancers --names $(ALB_NAME) --region $(AWS_REGION) --query "LoadBalancers[0].DNSName" --output text 2>/dev/null || true)"; if [ -n "$$ALB_DNS" ]; then \
+		echo "Testing: http://$$ALB_DNS/healthz"; if curl -sSf http://$$ALB_DNS/healthz >/dev/null; then \
+			printf "$(GREEN)✓ ALB health check passed$(NC)\n"; else \
+			printf "$(YELLOW)⚠ Waiting for instances to become healthy...$(NC)\n"; fi; \
+	else \
+		printf "$(RED)❌ ALB not found$(NC)\n"; \
+		printf "$(YELLOW)⚠ Deploy the ALB stack before re-running$(NC)\n"; fi'
 
 ##@ Testing
 
 test-cpu: check-health ## Run CPU pressure test
 	@echo "$(BLUE)🚀 Running CPU pressure test...$(NC)"
-	@export BASE_URL=$$(aws elbv2 describe-load-balancers --names lab-alb --region $(AWS_REGION) --query 'LoadBalancers[0].DNSName' --output text 2>/dev/null | sed 's/^/http:\/\//') && \
-		k6 run $(APPS_DIR)/load-generator/k6/cpu-pressure.js
+	@export BASE_URL=$$(aws elbv2 describe-load-balancers --names $(ALB_NAME) --region $(AWS_REGION) --query 'LoadBalancers[0].DNSName' --output text 2>/dev/null | sed 's/^/http:\/\//') && \
+		K6_PROMETHEUS_RW_SERVER_URL=$(K6_PROMETHEUS_RW_SERVER_URL) K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM=$(K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM) k6 run -o $(K6_OUTPUT) $(APPS_DIR)/load-generator/k6/cpu-pressure.js
 
 test-rps: check-health ## Run RPS gradual ramp test
 	@echo "$(BLUE)🚀 Running RPS gradual ramp test...$(NC)"
-	@export BASE_URL=$$(aws elbv2 describe-load-balancers --names lab-alb --region $(AWS_REGION) --query 'LoadBalancers[0].DNSName' --output text 2>/dev/null | sed 's/^/http:\/\//') && \
-		k6 run $(APPS_DIR)/load-generator/k6/gradual-ramp.js
+	@export BASE_URL=$$(aws elbv2 describe-load-balancers --names $(ALB_NAME) --region $(AWS_REGION) --query 'LoadBalancers[0].DNSName' --output text 2>/dev/null | sed 's/^/http:\/\//') && \
+		K6_PROMETHEUS_RW_SERVER_URL=$(K6_PROMETHEUS_RW_SERVER_URL) K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM=$(K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM) k6 run -o $(K6_OUTPUT) $(APPS_DIR)/load-generator/k6/gradual-ramp.js
 
 test-memory: check-health ## Run memory pressure test
 	@echo "$(BLUE)🚀 Running memory pressure test...$(NC)"
-	@export BASE_URL=$$(aws elbv2 describe-load-balancers --names lab-alb --region $(AWS_REGION) --query 'LoadBalancers[0].DNSName' --output text 2>/dev/null | sed 's/^/http:\/\//') && \
+	@export BASE_URL=$$(aws elbv2 describe-load-balancers --names $(ALB_NAME) --region $(AWS_REGION) --query 'LoadBalancers[0].DNSName' --output text 2>/dev/null | sed 's/^/http:\/\//') && \
 		export MB=150 && \
-		k6 run $(APPS_DIR)/load-generator/k6/memory-pressure.js
+		K6_PROMETHEUS_RW_SERVER_URL=$(K6_PROMETHEUS_RW_SERVER_URL) K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM=$(K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM) k6 run -o $(K6_OUTPUT) $(APPS_DIR)/load-generator/k6/memory-pressure.js
 
 test-spike: check-health ## Run sudden spike test
 	@echo "$(BLUE)🚀 Running sudden spike test...$(NC)"
-	@export BASE_URL=$$(aws elbv2 describe-load-balancers --names lab-alb --region $(AWS_REGION) --query 'LoadBalancers[0].DNSName' --output text 2>/dev/null | sed 's/^/http:\/\//') && \
-		k6 run $(APPS_DIR)/load-generator/k6/spike.js
+	@export BASE_URL=$$(aws elbv2 describe-load-balancers --names $(ALB_NAME) --region $(AWS_REGION) --query 'LoadBalancers[0].DNSName' --output text 2>/dev/null | sed 's/^/http:\/\//') && \
+		K6_PROMETHEUS_RW_SERVER_URL=$(K6_PROMETHEUS_RW_SERVER_URL) K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM=$(K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM) k6 run -o $(K6_OUTPUT) $(APPS_DIR)/load-generator/k6/spike.js
 
 test-sawtooth: check-health ## Run sawtooth cycle test
 	@echo "$(BLUE)🚀 Running sawtooth cycle test...$(NC)"
-	@export BASE_URL=$$(aws elbv2 describe-load-balancers --names lab-alb --region $(AWS_REGION) --query 'LoadBalancers[0].DNSName' --output text 2>/dev/null | sed 's/^/http:\/\//') && \
-		k6 run $(APPS_DIR)/load-generator/k6/sawtooth.js
+	@export BASE_URL=$$(aws elbv2 describe-load-balancers --names $(ALB_NAME) --region $(AWS_REGION) --query 'LoadBalancers[0].DNSName' --output text 2>/dev/null | sed 's/^/http:\/\//') && \
+		K6_PROMETHEUS_RW_SERVER_URL=$(K6_PROMETHEUS_RW_SERVER_URL) K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM=$(K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM) k6 run -o $(K6_OUTPUT) $(APPS_DIR)/load-generator/k6/sawtooth.js
 
 test-all: test-cpu test-rps test-spike ## Run all load tests sequentially
 
 ##@ Monitoring
 
+monitoring-up: ## Start local Prometheus + Grafana
+	@echo "$(BLUE)📈 Starting Prometheus + Grafana...$(NC)"
+	@docker compose -f monitoring/docker-compose.yml up -d
+	@echo "$(GREEN)✓ Grafana ready at http://localhost:3000$(NC)"
+
+monitoring-down: ## Stop local Prometheus + Grafana
+	@echo "$(BLUE)🛑 Stopping Prometheus + Grafana...$(NC)"
+	@docker compose -f monitoring/docker-compose.yml down
+
+monitoring-dashboard: ## Open local Grafana k6 dashboard
+	@echo "$(BLUE)📊 Opening Grafana dashboard...$(NC)"
+	@open "http://localhost:3000/d/k6-overview/k6-overview" || \
+		echo "Visit: http://localhost:3000/d/k6-overview/k6-overview"
+
 dashboard: ## Open CloudWatch Dashboard in browser
 	@echo "$(BLUE)📊 Opening CloudWatch Dashboard...$(NC)"
-	@open "https://$(AWS_REGION).console.aws.amazon.com/cloudwatch/home?region=$(AWS_REGION)#dashboards:name=lab-scaling-peak-load" || \
-		echo "Visit: https://$(AWS_REGION).console.aws.amazon.com/cloudwatch/home?region=$(AWS_REGION)#dashboards:name=lab-scaling-peak-load"
+	@open "https://$(AWS_REGION).console.aws.amazon.com/cloudwatch/home?region=$(AWS_REGION)#dashboards/dashboard/$(DASHBOARD_NAME)" || \
+		echo "Visit: https://$(AWS_REGION).console.aws.amazon.com/cloudwatch/home?region=$(AWS_REGION)#dashboards/dashboard/$(DASHBOARD_NAME)"
 
 logs: ## Tail EventBridge event logs
 	@echo "$(BLUE)📋 Tailing EventBridge logs...$(NC)"
