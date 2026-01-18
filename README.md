@@ -24,7 +24,7 @@ The application is built into a Docker image and pushed to ECR for use during EC
 
 Testing how different instance launch strategies affect scale-out speed during traffic spikes.
 
-![Architecture Diagram](./images/01-architecture.png)
+![Architecture Diagram](./images/10-architecture.png)
 
 - Setup Guide - `will be added soon`
 - [infrastructure - terraform](./aws/10-ec2-asg/)
