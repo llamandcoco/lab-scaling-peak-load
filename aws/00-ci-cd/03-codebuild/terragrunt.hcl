@@ -12,7 +12,7 @@ locals {
 }
 
 terraform {
-  source = "github.com/llamandcoco/infra-modules//terraform/codebuild?ref=${local.root_vars.codebuild_ref}"
+  source = "github.com/llamandcoco/infra-modules//terraform/codebuild?ref=${local.common.codebuild_ref}"
 }
 
 dependencies {

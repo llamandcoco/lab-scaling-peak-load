@@ -8,12 +8,13 @@ dependency "codebuild" {
 
 locals {
   root_vars = read_terragrunt_config(find_in_parent_folders("root.hcl")).locals
+  common    = read_terragrunt_config(find_in_parent_folders("_env_common.hcl")).locals
   env       = local.root_vars.env
   app       = local.root_vars.app
 }
 
 terraform {
-  source = "github.com/llamandcoco/infra-modules//terraform/codepipeline?ref=${local.root_vars.codepipeline_ref}"
+  source = "github.com/llamandcoco/infra-modules//terraform/codepipeline?ref=${local.common.codepipeline_ref}"
 }
 inputs = {
   pipeline_name           = "${local.env}-${local.app}-pipeline"
