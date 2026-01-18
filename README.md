@@ -85,12 +85,13 @@ Optimizing instance launch strategy reduces the impact of traffic spikes, but do
 
 <img src="./images/90-humor-think.png" width="80" />
 
-First time using AWS CodeBuild and CodePipeline beyond GitHub Actions. This experience helped me understand how to build a complete CI/CD pipeline within AWS ecosystem.
+This experiment provided hands-on experience with AWS-native CI/CD tools (CodeBuild, CodePipeline) compared to GitHub Actions, highlighting trade-offs in pipeline ownership, artifact handling, and operational visibility inside the AWS ecosystem.
 
-Working directly with EC2 Auto Scaling was eye-opening after primarily using container-based services (ECS/EKS). It revealed what happens beneath the abstraction layers of container orchestrators. I could directly observe how instance startup time, AMI optimization, and Warm Pool features impact scaling performance in practice.
+Working directly with EC2 Auto Scaling exposed the mechanics beneath container orchestrators. Instance startup time, AMI optimization, and Warm Pool configuration had measurable impact on scale-out latency. VM-based scaling has fundamental limits—OS boot time introduces unavoidable delays that container-based systems abstract away.
 
-VM-based scale-out has inherent limitations due to OS boot time.
-Even with optimization, it responds more slowly than container-based orchestration systems.
+From a scaling perspective, the key insight was separating cause from effect. RPS drives load; CPU, memory, and disk metrics are downstream signals. Scaling purely on resource utilization leads to reactive behavior, especially during traffic spikes. More effective strategies require aligning application architecture, traffic patterns, and auto-scaling policies around RPS characteristics.
+
+This complexity increases significantly when stateful components like databases are involved, where scaling decisions directly affect consistency, latency, and system stability.
 
 ## Future Work
 
