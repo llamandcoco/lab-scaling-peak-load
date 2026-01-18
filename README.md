@@ -33,6 +33,7 @@ Testing how different instance launch strategies affect scale-out speed during t
 ### Configuration
 
 - **Instance Type**: t3.micro
+- **Single Instance Capacity**: ~70-80 RPS (measured peak)
 - **Auto Scaling**: min 2, max 6, desired 2
 - **Scaling Triggers**: CPU 60% or RPS 60
 - **Warm Pool**: 2 instances (Stopped)
