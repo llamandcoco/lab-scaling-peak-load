@@ -44,10 +44,12 @@ Testing how different instance launch strategies affect scale-out speed during t
   - 3m: 200 RPS (observe scale-out completion)
   - 2m: 50 RPS (cool down)
 
-**Load Pattern Monitoring** (Grafana + Prometheus)
+  Monitored with Grafana + Prometheus:
 
-![HTTP Request Rate](./images/11-http-request-rate.png)
-![Virtual Users](./images/12-virtual-users.png)
+  <p align="center">
+    <img src="./images/11-http-request-rate.png" width="45%" />
+    <img src="./images/12-virtual-users.png" width="45%" />
+  </p>
 
 ### Instance Launch Strategies Compared
 
@@ -80,7 +82,7 @@ Optimizing instance launch strategy reduces the impact of traffic spikes, but do
 
 ## Learnings
 
-![Think](./images/90-humor-think.png)
+<img src="./images/90-humor-think.png" width="80" />
 
 First time using AWS CodeBuild and CodePipeline beyond GitHub Actions. This experience helped me understand how to build a complete CI/CD pipeline within AWS ecosystem.
 
