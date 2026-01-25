@@ -1,5 +1,5 @@
 terraform {
-  source = "../../../../infra-modules/terraform/security_group"
+  source = "../../../../infra-modules/terraform/security-group"
 }
 
 include {
