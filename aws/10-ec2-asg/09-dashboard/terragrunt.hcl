@@ -11,7 +11,15 @@ dependency "asg" {
 }
 
 dependency "alb" {
-  config_path = "../05-alb"
+  config_path = "../../00-shared-infra/03-alb"
+
+  mock_outputs = {
+    alb_arn                  = "arn:aws:elasticloadbalancing:ca-central-1:123456789012:loadbalancer/app/mock-alb/1234567890abcdef"
+    alb_arn_suffix           = "app/mock-alb/1234567890abcdef"
+    target_group_arns        = { "lab-tg" = "arn:aws:elasticloadbalancing:ca-central-1:123456789012:targetgroup/lab-tg/1234567890abcdef" }
+    target_group_arn_suffixes = { "lab-tg" = "targetgroup/lab-tg/1234567890abcdef" }
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
 }
 
 dependency "eb" {

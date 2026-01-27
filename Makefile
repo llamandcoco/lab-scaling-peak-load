@@ -84,12 +84,12 @@ deploy-sequential: ## Deploy stacks in order (safer, slower)
 	@cd $(ASG_DIR)/01-iam && terragrunt apply -auto-approve
 	@cd $(SHARED_INFRA_DIR)/01-networking && terragrunt apply -auto-approve
 	@cd $(SHARED_INFRA_DIR)/02-alb-sg && terragrunt apply -auto-approve
-	@cd $(ASG_DIR)/04-instance-sg && terragrunt apply -auto-approve
+	@cd $(ASG_DIR)/02-instance-sg && terragrunt apply -auto-approve
 	@cd $(SHARED_INFRA_DIR)/03-alb && terragrunt apply -auto-approve
-	@cd $(ASG_DIR)/06-asg && terragrunt apply -auto-approve
-	@cd $(ASG_DIR)/07-cloudwatch && terragrunt apply -auto-approve
-	@cd $(ASG_DIR)/08-eventbridge && terragrunt apply -auto-approve
-	@cd $(ASG_DIR)/09-dashboard && terragrunt apply -auto-approve
+	@cd $(ASG_DIR)/03-asg && terragrunt apply -auto-approve
+	@cd $(ASG_DIR)/04-cloudwatch && terragrunt apply -auto-approve
+	@cd $(ASG_DIR)/05-eventbridge && terragrunt apply -auto-approve
+	@cd $(ASG_DIR)/06-dashboard && terragrunt apply -auto-approve
 	@echo "$(GREEN)✅ All stacks deployed sequentially$(NC)"
 	@$(MAKE) get-alb-dns
 ##@ Shared Infrastructure (00-shared-infra)
@@ -155,11 +155,11 @@ deploy-security-groups: ## Deploy ALB security group (shared infrastructure)
 
 plan-instance-sg: ## Plan instance security group
 	@echo "$(BLUE)📋 Planning instance security group...$(NC)"
-	@cd $(ASG_DIR)/04-instance-sg && terragrunt plan
+	@cd $(ASG_DIR)/02-instance-sg && terragrunt plan
 
 deploy-instance-sg: ## Deploy instance security group
 	@echo "$(BLUE)🏗️ [4/9] Deploying instance security group...$(NC)"
-	@cd $(ASG_DIR)/04-instance-sg && terragrunt apply
+	@cd $(ASG_DIR)/02-instance-sg && terragrunt apply
 	@echo "$(GREEN)✅ Instance security group deployed$(NC)"
 
 plan-secrets: ## Plan secrets stack
@@ -211,11 +211,11 @@ deploy-alb: ## Deploy Application Load Balancer (shared infrastructure)
 
 plan-asg: ## Plan Auto Scaling Group
 	@echo "$(BLUE)📋 Planning Auto Scaling Group...$(NC)"
-	@cd $(ASG_DIR)/06-asg && terragrunt plan
+	@cd $(ASG_DIR)/03-asg && terragrunt plan
 
 deploy-asg-only: check-image ## Deploy Auto Scaling Group (without prerequisites)
 	@echo "$(BLUE)🏗️ [6/9] Deploying Auto Scaling Group...$(NC)"
-	@cd $(ASG_DIR)/06-asg && terragrunt apply
+	@cd $(ASG_DIR)/03-asg && terragrunt apply
 	@echo "$(GREEN)✅ ASG deployed$(NC)"
 	@echo "$(YELLOW)⏳ Waiting for instances to become healthy...$(NC)"
 	@sleep 30
@@ -223,29 +223,29 @@ deploy-asg-only: check-image ## Deploy Auto Scaling Group (without prerequisites
 
 plan-cloudwatch: ## Plan CloudWatch alarms
 	@echo "$(BLUE)📋 Planning CloudWatch alarms...$(NC)"
-	@cd $(ASG_DIR)/07-cloudwatch && terragrunt plan
+	@cd $(ASG_DIR)/04-cloudwatch && terragrunt plan
 
 deploy-cloudwatch: ## Deploy CloudWatch alarms
 	@echo "$(BLUE)🏗️ [7/9] Deploying CloudWatch alarms...$(NC)"
-	@cd $(ASG_DIR)/07-cloudwatch && terragrunt apply
+	@cd $(ASG_DIR)/04-cloudwatch && terragrunt apply
 	@echo "$(GREEN)✅ CloudWatch alarms deployed$(NC)"
 
 plan-eventbridge: ## Plan EventBridge rules
 	@echo "$(BLUE)📋 Planning EventBridge rules...$(NC)"
-	@cd $(ASG_DIR)/08-eventbridge && terragrunt plan
+	@cd $(ASG_DIR)/05-eventbridge && terragrunt plan
 
 deploy-eventbridge: ## Deploy EventBridge rules
 	@echo "$(BLUE)🏗️ [8/9] Deploying EventBridge rules...$(NC)"
-	@cd $(ASG_DIR)/08-eventbridge && terragrunt apply
+	@cd $(ASG_DIR)/05-eventbridge && terragrunt apply
 	@echo "$(GREEN)✅ EventBridge rules deployed$(NC)"
 
 plan-dashboard: ## Plan CloudWatch dashboard
 	@echo "$(BLUE)📋 Planning CloudWatch dashboard...$(NC)"
-	@cd $(ASG_DIR)/09-dashboard && terragrunt plan
+	@cd $(ASG_DIR)/06-dashboard && terragrunt plan
 
 deploy-dashboard: ## Deploy CloudWatch dashboard
 	@echo "$(BLUE)🏗️ [9/9] Deploying CloudWatch dashboard...$(NC)"
-	@cd $(ASG_DIR)/09-dashboard && terragrunt apply
+	@cd $(ASG_DIR)/06-dashboard && terragrunt apply
 	@echo "$(GREEN)✅ Dashboard deployed$(NC)"
 	@$(MAKE) dashboard
 
@@ -401,12 +401,12 @@ destroy: ## Destroy all infrastructure
 destroy-sequential: ## Destroy stacks in reverse order (safer)
 	@echo "$(RED)🗑️ Destroying infrastructure in reverse order...$(NC)"
 	@read -p "Are you sure? Type 'yes' to confirm: " confirm && [ "$$confirm" = "yes" ] || (echo "Aborted" && exit 1)
-	@cd $(ASG_DIR)/09-dashboard && terragrunt destroy -auto-approve || true
-	@cd $(ASG_DIR)/08-eventbridge && terragrunt destroy -auto-approve || true
-	@cd $(ASG_DIR)/07-cloudwatch && terragrunt destroy -auto-approve || true
-	@cd $(ASG_DIR)/06-asg && terragrunt destroy -auto-approve || true
+	@cd $(ASG_DIR)/06-dashboard && terragrunt destroy -auto-approve || true
+	@cd $(ASG_DIR)/05-eventbridge && terragrunt destroy -auto-approve || true
+	@cd $(ASG_DIR)/04-cloudwatch && terragrunt destroy -auto-approve || true
+	@cd $(ASG_DIR)/03-asg && terragrunt destroy -auto-approve || true
 	@cd $(SHARED_INFRA_DIR)/03-alb && terragrunt destroy -auto-approve || true
-	@cd $(ASG_DIR)/04-instance-sg && terragrunt destroy -auto-approve || true
+	@cd $(ASG_DIR)/02-instance-sg && terragrunt destroy -auto-approve || true
 	@cd $(SHARED_INFRA_DIR)/02-alb-sg && terragrunt destroy -auto-approve || true
 	@cd $(SHARED_INFRA_DIR)/01-networking && terragrunt destroy -auto-approve || true
 	@cd $(ASG_DIR)/01-iam && terragrunt destroy -auto-approve || true
@@ -415,19 +415,19 @@ destroy-sequential: ## Destroy stacks in reverse order (safer)
 
 destroy-dashboard: ## Destroy CloudWatch dashboard
 	@echo "$(RED)🗑️ Destroying dashboard...$(NC)"
-	@cd $(ASG_DIR)/09-dashboard && terragrunt destroy -auto-approve
+	@cd $(ASG_DIR)/06-dashboard && terragrunt destroy -auto-approve
 
 destroy-eventbridge: ## Destroy EventBridge rules
 	@echo "$(RED)🗑️ Destroying EventBridge...$(NC)"
-	@cd $(ASG_DIR)/08-eventbridge && terragrunt destroy -auto-approve
+	@cd $(ASG_DIR)/05-eventbridge && terragrunt destroy -auto-approve
 
 destroy-cloudwatch: ## Destroy CloudWatch alarms
 	@echo "$(RED)🗑️ Destroying CloudWatch alarms...$(NC)"
-	@cd $(ASG_DIR)/07-cloudwatch && terragrunt destroy -auto-approve
+	@cd $(ASG_DIR)/04-cloudwatch && terragrunt destroy -auto-approve
 
 destroy-asg: ## Destroy Auto Scaling Group
 	@echo "$(RED)🗑️ Destroying ASG...$(NC)"
-	@cd $(ASG_DIR)/06-asg && terragrunt destroy -auto-approve
+	@cd $(ASG_DIR)/03-asg && terragrunt destroy -auto-approve
 
 destroy-alb: ## Destroy Application Load Balancer (shared infrastructure)
 	@echo "$(RED)🗑️ Destroying ALB...$(NC)"
@@ -435,7 +435,7 @@ destroy-alb: ## Destroy Application Load Balancer (shared infrastructure)
 
 destroy-instance-sg: ## Destroy instance security group
 	@echo "$(RED)🗑️ Destroying instance security group...$(NC)"
-	@cd $(ASG_DIR)/04-instance-sg && terragrunt destroy -auto-approve
+	@cd $(ASG_DIR)/02-instance-sg && terragrunt destroy -auto-approve
 
 destroy-security-groups: ## Destroy ALB security group (shared infrastructure)
 	@echo "$(RED)🗑️ Destroying ALB security group...$(NC)"
