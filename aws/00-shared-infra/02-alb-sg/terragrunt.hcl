@@ -1,5 +1,5 @@
 terraform {
-  source = "../../../../infra-modules/terraform/security_group"
+  source = "../../../../infra-modules/terraform/security-group"
 }
 
 include {
@@ -8,6 +8,11 @@ include {
 
 dependency "net" {
   config_path = "../01-networking"
+
+  mock_outputs = {
+    vpc_id = "vpc-mock123456"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
 }
 
 locals {
