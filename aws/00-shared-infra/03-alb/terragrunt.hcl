@@ -1,5 +1,5 @@
 terraform {
-  source = "../../../../infra-modules/terraform/alb"
+  source = "github.com/llamandcoco/infra-modules//terraform/alb?ref=${local.common.alb_ref}"
 }
 
 include {
@@ -28,6 +28,7 @@ dependency "alb_sg" {
 
 locals {
   parent_locals = read_terragrunt_config(find_in_parent_folders("root.hcl")).locals
+  common        = read_terragrunt_config("../_env_common.hcl").locals
   env           = local.parent_locals.env
   app           = local.parent_locals.app
 }

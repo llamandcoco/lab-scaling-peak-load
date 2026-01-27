@@ -1,5 +1,5 @@
 terraform {
-  source = "../../../../infra-modules/terraform/security-group"
+  source = "github.com/llamandcoco/infra-modules//terraform/security-group?ref=${local.common.security_group_ref}"
 }
 
 include {
@@ -17,6 +17,7 @@ dependency "net" {
 
 locals {
   parent_locals = read_terragrunt_config(find_in_parent_folders("root.hcl")).locals
+  common        = read_terragrunt_config("../_env_common.hcl").locals
   env           = local.parent_locals.env
   app           = local.parent_locals.app
 }

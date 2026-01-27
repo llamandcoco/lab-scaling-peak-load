@@ -1,5 +1,5 @@
 terraform {
-  source = "/Users/lama/workspace/llamandcoco/infra-modules//terraform/stack/networking"
+  source = "github.com/llamandcoco/infra-modules//terraform/stack/networking?ref=${local.common.networking_ref}"
 }
 
 include {
