@@ -7,7 +7,12 @@ include {
 }
 
 dependency "asg" {
-  config_path = "../06-asg"
+  config_path = "../03-asg"
+
+  mock_outputs = {
+    asg_name = "mock-asg-name"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
 }
 
 inputs = {

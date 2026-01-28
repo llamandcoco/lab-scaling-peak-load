@@ -7,7 +7,12 @@ include {
 }
 
 dependency "asg" {
-  config_path = "../06-asg"
+  config_path = "../03-asg"
+
+  mock_outputs = {
+    asg_name = "mock-asg-name"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
 }
 
 dependency "alb" {
@@ -23,7 +28,12 @@ dependency "alb" {
 }
 
 dependency "eb" {
-  config_path = "../08-eventbridge"
+  config_path = "../05-eventbridge"
+
+  mock_outputs = {
+    log_group_name = "/aws/events/lab-scaling-mock"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
 }
 
 locals { 

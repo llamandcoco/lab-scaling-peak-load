@@ -94,6 +94,9 @@ deploy-sequential: ## Deploy stacks in order (safer, slower)
 	@$(MAKE) get-alb-dns
 ##@ Shared Infrastructure (00-shared-infra)
 
+deploy-all-ec2: deploy-shared-infra deploy-asg ## Deploy everything from scratch (shared-infra + EC2 ASG)
+	@echo "$(GREEN)✅ Complete EC2 infrastructure deployed$(NC)"
+
 deploy-shared-infra: ## Deploy all shared infrastructure (networking, ALB SG, ALB)
 	@echo "$(BLUE)🏗️ Deploying shared infrastructure...$(NC)"
 	@cd $(SHARED_INFRA_DIR)/01-networking && terragrunt apply
@@ -119,7 +122,7 @@ destroy-shared-infra: ## Destroy shared infrastructure (WARNING: affects all pla
 
 ##@ ASG EC2 Deployment (10-ec2-asg)
 
-deploy-asg: deploy-iam deploy-shared-infra deploy-instance-sg deploy-asg-only deploy-cloudwatch deploy-eventbridge deploy-dashboard ## Deploy entire ASG infrastructure
+deploy-asg: deploy-iam deploy-instance-sg deploy-asg-only deploy-cloudwatch deploy-eventbridge deploy-dashboard ## Deploy EC2 ASG infrastructure (requires shared-infra)
 	@echo "$(GREEN)✅ Full ASG infrastructure deployed$(NC)"
 	@echo "$(BLUE)Next steps:$(NC)"
 	@echo "  1. Watch ASG: https://console.aws.amazon.com/ec2/v2/home#AutoScalingGroups"
@@ -131,7 +134,7 @@ plan-iam: ## Plan IAM stack
 	@cd $(ASG_DIR)/01-iam && terragrunt plan
 
 deploy-iam: ## Deploy IAM instance profile
-	@echo "$(BLUE)🏗️ [1/9] Deploying IAM instance profile...$(NC)"
+	@echo "$(BLUE)🏗️ [1/6] Deploying IAM instance profile...$(NC)"
 	@cd $(ASG_DIR)/01-iam && terragrunt apply
 	@echo "$(GREEN)✅ IAM deployed$(NC)"
 
@@ -140,7 +143,7 @@ plan-networking: ## Plan networking stack (shared infrastructure)
 	@cd $(SHARED_INFRA_DIR)/01-networking && terragrunt plan
 
 deploy-networking: ## Deploy VPC and subnets (shared infrastructure)
-	@echo "$(BLUE)🏗️ [2/9] Deploying VPC and subnets...$(NC)"
+	@echo "$(BLUE)🏗️ [1/3] Deploying VPC and subnets...$(NC)"
 	@cd $(SHARED_INFRA_DIR)/01-networking && terragrunt apply
 	@echo "$(GREEN)✅ Networking deployed (shared across EC2/ECS/EKS)$(NC)"
 
@@ -149,7 +152,7 @@ plan-security-groups: ## Plan ALB security group (shared infrastructure)
 	@cd $(SHARED_INFRA_DIR)/02-alb-sg && terragrunt plan
 
 deploy-security-groups: ## Deploy ALB security group (shared infrastructure)
-	@echo "$(BLUE)🏗️ [3/9] Deploying ALB security group...$(NC)"
+	@echo "$(BLUE)🏗️ [2/3] Deploying ALB security group...$(NC)"
 	@cd $(SHARED_INFRA_DIR)/02-alb-sg && terragrunt apply
 	@echo "$(GREEN)✅ ALB security group deployed (shared across EC2/ECS)$(NC)"
 
@@ -158,7 +161,7 @@ plan-instance-sg: ## Plan instance security group
 	@cd $(ASG_DIR)/02-instance-sg && terragrunt plan
 
 deploy-instance-sg: ## Deploy instance security group
-	@echo "$(BLUE)🏗️ [4/9] Deploying instance security group...$(NC)"
+	@echo "$(BLUE)🏗️ [2/6] Deploying instance security group...$(NC)"
 	@cd $(ASG_DIR)/02-instance-sg && terragrunt apply
 	@echo "$(GREEN)✅ Instance security group deployed$(NC)"
 
@@ -204,7 +207,7 @@ plan-alb: ## Plan Application Load Balancer (shared infrastructure)
 	@cd $(SHARED_INFRA_DIR)/03-alb && terragrunt plan
 
 deploy-alb: ## Deploy Application Load Balancer (shared infrastructure)
-	@echo "$(BLUE)🏗️ [5/9] Deploying Application Load Balancer...$(NC)"
+	@echo "$(BLUE)🏗️ [3/3] Deploying Application Load Balancer...$(NC)"
 	@cd $(SHARED_INFRA_DIR)/03-alb && terragrunt apply
 	@echo "$(GREEN)✅ ALB deployed (shared by EC2 and ECS)$(NC)"
 	@$(MAKE) get-alb-dns
@@ -214,7 +217,7 @@ plan-asg: ## Plan Auto Scaling Group
 	@cd $(ASG_DIR)/03-asg && terragrunt plan
 
 deploy-asg-only: check-image ## Deploy Auto Scaling Group (without prerequisites)
-	@echo "$(BLUE)🏗️ [6/9] Deploying Auto Scaling Group...$(NC)"
+	@echo "$(BLUE)🏗️ [3/6] Deploying Auto Scaling Group...$(NC)"
 	@cd $(ASG_DIR)/03-asg && terragrunt apply
 	@echo "$(GREEN)✅ ASG deployed$(NC)"
 	@echo "$(YELLOW)⏳ Waiting for instances to become healthy...$(NC)"
@@ -226,7 +229,7 @@ plan-cloudwatch: ## Plan CloudWatch alarms
 	@cd $(ASG_DIR)/04-cloudwatch && terragrunt plan
 
 deploy-cloudwatch: ## Deploy CloudWatch alarms
-	@echo "$(BLUE)🏗️ [7/9] Deploying CloudWatch alarms...$(NC)"
+	@echo "$(BLUE)🏗️ [4/6] Deploying CloudWatch alarms...$(NC)"
 	@cd $(ASG_DIR)/04-cloudwatch && terragrunt apply
 	@echo "$(GREEN)✅ CloudWatch alarms deployed$(NC)"
 
@@ -235,7 +238,7 @@ plan-eventbridge: ## Plan EventBridge rules
 	@cd $(ASG_DIR)/05-eventbridge && terragrunt plan
 
 deploy-eventbridge: ## Deploy EventBridge rules
-	@echo "$(BLUE)🏗️ [8/9] Deploying EventBridge rules...$(NC)"
+	@echo "$(BLUE)🏗️ [5/6] Deploying EventBridge rules...$(NC)"
 	@cd $(ASG_DIR)/05-eventbridge && terragrunt apply
 	@echo "$(GREEN)✅ EventBridge rules deployed$(NC)"
 
@@ -244,7 +247,7 @@ plan-dashboard: ## Plan CloudWatch dashboard
 	@cd $(ASG_DIR)/06-dashboard && terragrunt plan
 
 deploy-dashboard: ## Deploy CloudWatch dashboard
-	@echo "$(BLUE)🏗️ [9/9] Deploying CloudWatch dashboard...$(NC)"
+	@echo "$(BLUE)🏗️ [6/6] Deploying CloudWatch dashboard...$(NC)"
 	@cd $(ASG_DIR)/06-dashboard && terragrunt apply
 	@echo "$(GREEN)✅ Dashboard deployed$(NC)"
 	@$(MAKE) dashboard

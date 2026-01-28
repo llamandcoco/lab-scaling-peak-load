@@ -29,11 +29,21 @@ dependency "net" {
 }
 
 dependency "inst_sg" {
-  config_path = "../04-instance-sg"
+  config_path = "../02-instance-sg"
+
+  mock_outputs = {
+    security_group_id = "sg-mock-instance"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
 }
 
 dependency "iam" {
   config_path = "../01-iam"
+
+  mock_outputs = {
+    instance_profile_name = "mock-instance-profile"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
 }
 
 locals {
