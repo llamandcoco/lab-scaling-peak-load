@@ -10,6 +10,7 @@ K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM ?= false
 K6_OUTPUT ?= experimental-prometheus-rw
 PROJECT_ROOT := $(shell pwd)
 CI_CD_DIR := $(PROJECT_ROOT)/aws/00-ci-cd
+SHARED_INFRA_DIR := $(PROJECT_ROOT)/aws/00-shared-infra
 ASG_DIR := $(PROJECT_ROOT)/aws/10-ec2-asg
 APPS_DIR := $(PROJECT_ROOT)/apps
 ENV_FILE := $(PROJECT_ROOT)/.env
@@ -81,19 +82,47 @@ deploy-all: ## Deploy entire infrastructure (all stacks)
 deploy-sequential: ## Deploy stacks in order (safer, slower)
 	@echo "$(BLUE)🏗️ Deploying infrastructure in sequence...$(NC)"
 	@cd $(ASG_DIR)/01-iam && terragrunt apply -auto-approve
-	@cd $(ASG_DIR)/02-networking && terragrunt apply -auto-approve
-	@cd $(ASG_DIR)/03-security-groups && terragrunt apply -auto-approve
-	@cd $(ASG_DIR)/04-instance-sg && terragrunt apply -auto-approve
-	@cd $(ASG_DIR)/05-alb && terragrunt apply -auto-approve
-	@cd $(ASG_DIR)/06-asg && terragrunt apply -auto-approve
-	@cd $(ASG_DIR)/07-cloudwatch && terragrunt apply -auto-approve
-	@cd $(ASG_DIR)/08-eventbridge && terragrunt apply -auto-approve
-	@cd $(ASG_DIR)/09-dashboard && terragrunt apply -auto-approve
+	@cd $(SHARED_INFRA_DIR)/01-networking && terragrunt apply -auto-approve
+	@cd $(SHARED_INFRA_DIR)/02-alb-sg && terragrunt apply -auto-approve
+	@cd $(ASG_DIR)/02-instance-sg && terragrunt apply -auto-approve
+	@cd $(SHARED_INFRA_DIR)/03-alb && terragrunt apply -auto-approve
+	@cd $(ASG_DIR)/03-asg && terragrunt apply -auto-approve
+	@cd $(ASG_DIR)/04-cloudwatch && terragrunt apply -auto-approve
+	@cd $(ASG_DIR)/05-eventbridge && terragrunt apply -auto-approve
+	@cd $(ASG_DIR)/06-dashboard && terragrunt apply -auto-approve
 	@echo "$(GREEN)✅ All stacks deployed sequentially$(NC)"
 	@$(MAKE) get-alb-dns
+##@ Shared Infrastructure (00-shared-infra)
+
+deploy-all-ec2: deploy-shared-infra deploy-asg ## Deploy everything from scratch (shared-infra + EC2 ASG)
+	@echo "$(GREEN)✅ Complete EC2 infrastructure deployed$(NC)"
+
+deploy-shared-infra: ## Deploy all shared infrastructure (networking, ALB SG, ALB)
+	@echo "$(BLUE)🏗️ Deploying shared infrastructure...$(NC)"
+	@cd $(SHARED_INFRA_DIR)/01-networking && terragrunt apply
+	@cd $(SHARED_INFRA_DIR)/02-alb-sg && terragrunt apply
+	@cd $(SHARED_INFRA_DIR)/03-alb && terragrunt apply
+	@echo "$(GREEN)✅ Shared infrastructure deployed (ready for EC2/ECS/EKS)$(NC)"
+	@$(MAKE) get-alb-dns
+
+plan-shared-infra: ## Plan all shared infrastructure
+	@echo "$(BLUE)📋 Planning shared infrastructure...$(NC)"
+	@cd $(SHARED_INFRA_DIR)/01-networking && terragrunt plan
+	@cd $(SHARED_INFRA_DIR)/02-alb-sg && terragrunt plan
+	@cd $(SHARED_INFRA_DIR)/03-alb && terragrunt plan
+
+destroy-shared-infra: ## Destroy shared infrastructure (WARNING: affects all platforms)
+	@echo "$(RED)🗑️ Destroying shared infrastructure...$(NC)"
+	@echo "$(YELLOW)⚠️  This will affect EC2, ECS, and EKS platforms!$(NC)"
+	@read -p "Are you sure? Type 'yes' to confirm: " confirm && [ "$$confirm" = "yes" ] || (echo "Aborted" && exit 1)
+	@cd $(SHARED_INFRA_DIR)/03-alb && terragrunt destroy -auto-approve || true
+	@cd $(SHARED_INFRA_DIR)/02-alb-sg && terragrunt destroy -auto-approve || true
+	@cd $(SHARED_INFRA_DIR)/01-networking && terragrunt destroy -auto-approve || true
+	@echo "$(GREEN)✅ Shared infrastructure destroyed$(NC)"
+
 ##@ ASG EC2 Deployment (10-ec2-asg)
 
-deploy-asg: deploy-iam deploy-networking deploy-security-groups deploy-instance-sg deploy-alb deploy-asg-only deploy-cloudwatch deploy-eventbridge deploy-dashboard ## Deploy entire ASG infrastructure
+deploy-asg: deploy-iam deploy-instance-sg deploy-asg-only deploy-cloudwatch deploy-eventbridge deploy-dashboard ## Deploy EC2 ASG infrastructure (requires shared-infra)
 	@echo "$(GREEN)✅ Full ASG infrastructure deployed$(NC)"
 	@echo "$(BLUE)Next steps:$(NC)"
 	@echo "  1. Watch ASG: https://console.aws.amazon.com/ec2/v2/home#AutoScalingGroups"
@@ -105,35 +134,35 @@ plan-iam: ## Plan IAM stack
 	@cd $(ASG_DIR)/01-iam && terragrunt plan
 
 deploy-iam: ## Deploy IAM instance profile
-	@echo "$(BLUE)🏗️ [1/9] Deploying IAM instance profile...$(NC)"
+	@echo "$(BLUE)🏗️ [1/6] Deploying IAM instance profile...$(NC)"
 	@cd $(ASG_DIR)/01-iam && terragrunt apply
 	@echo "$(GREEN)✅ IAM deployed$(NC)"
 
-plan-networking: ## Plan networking stack
+plan-networking: ## Plan networking stack (shared infrastructure)
 	@echo "$(BLUE)📋 Planning networking stack...$(NC)"
-	@cd $(ASG_DIR)/02-networking && terragrunt plan
+	@cd $(SHARED_INFRA_DIR)/01-networking && terragrunt plan
 
-deploy-networking: ## Deploy VPC and subnets
-	@echo "$(BLUE)🏗️ [2/9] Deploying VPC and subnets...$(NC)"
-	@cd $(ASG_DIR)/02-networking && terragrunt apply
-	@echo "$(GREEN)✅ Networking deployed$(NC)"
+deploy-networking: ## Deploy VPC and subnets (shared infrastructure)
+	@echo "$(BLUE)🏗️ [1/3] Deploying VPC and subnets...$(NC)"
+	@cd $(SHARED_INFRA_DIR)/01-networking && terragrunt apply
+	@echo "$(GREEN)✅ Networking deployed (shared across EC2/ECS/EKS)$(NC)"
 
-plan-security-groups: ## Plan ALB security group
+plan-security-groups: ## Plan ALB security group (shared infrastructure)
 	@echo "$(BLUE)📋 Planning ALB security group...$(NC)"
-	@cd $(ASG_DIR)/03-security-groups && terragrunt plan
+	@cd $(SHARED_INFRA_DIR)/02-alb-sg && terragrunt plan
 
-deploy-security-groups: ## Deploy ALB security group
-	@echo "$(BLUE)🏗️ [3/9] Deploying ALB security group...$(NC)"
-	@cd $(ASG_DIR)/03-security-groups && terragrunt apply
-	@echo "$(GREEN)✅ ALB security group deployed$(NC)"
+deploy-security-groups: ## Deploy ALB security group (shared infrastructure)
+	@echo "$(BLUE)🏗️ [2/3] Deploying ALB security group...$(NC)"
+	@cd $(SHARED_INFRA_DIR)/02-alb-sg && terragrunt apply
+	@echo "$(GREEN)✅ ALB security group deployed (shared across EC2/ECS)$(NC)"
 
 plan-instance-sg: ## Plan instance security group
 	@echo "$(BLUE)📋 Planning instance security group...$(NC)"
-	@cd $(ASG_DIR)/04-instance-sg && terragrunt plan
+	@cd $(ASG_DIR)/02-instance-sg && terragrunt plan
 
 deploy-instance-sg: ## Deploy instance security group
-	@echo "$(BLUE)🏗️ [4/9] Deploying instance security group...$(NC)"
-	@cd $(ASG_DIR)/04-instance-sg && terragrunt apply
+	@echo "$(BLUE)🏗️ [2/6] Deploying instance security group...$(NC)"
+	@cd $(ASG_DIR)/02-instance-sg && terragrunt apply
 	@echo "$(GREEN)✅ Instance security group deployed$(NC)"
 
 plan-secrets: ## Plan secrets stack
@@ -173,23 +202,23 @@ deploy-ecr: ## Deploy ECR repository
 	@echo "$(GREEN)✅ ECR deployed$(NC)"
 	@echo "$(YELLOW)⚠ Ready for Docker images from CodeBuild$(NC)"
 
-plan-alb: ## Plan Application Load Balancer
+plan-alb: ## Plan Application Load Balancer (shared infrastructure)
 	@echo "$(BLUE)📋 Planning ALB...$(NC)"
-	@cd $(ASG_DIR)/05-alb && terragrunt plan
+	@cd $(SHARED_INFRA_DIR)/03-alb && terragrunt plan
 
-deploy-alb: ## Deploy Application Load Balancer
-	@echo "$(BLUE)🏗️ [5/9] Deploying Application Load Balancer...$(NC)"
-	@cd $(ASG_DIR)/05-alb && terragrunt apply
-	@echo "$(GREEN)✅ ALB deployed$(NC)"
+deploy-alb: ## Deploy Application Load Balancer (shared infrastructure)
+	@echo "$(BLUE)🏗️ [3/3] Deploying Application Load Balancer...$(NC)"
+	@cd $(SHARED_INFRA_DIR)/03-alb && terragrunt apply
+	@echo "$(GREEN)✅ ALB deployed (shared by EC2 and ECS)$(NC)"
 	@$(MAKE) get-alb-dns
 
 plan-asg: ## Plan Auto Scaling Group
 	@echo "$(BLUE)📋 Planning Auto Scaling Group...$(NC)"
-	@cd $(ASG_DIR)/06-asg && terragrunt plan
+	@cd $(ASG_DIR)/03-asg && terragrunt plan
 
 deploy-asg-only: check-image ## Deploy Auto Scaling Group (without prerequisites)
-	@echo "$(BLUE)🏗️ [6/9] Deploying Auto Scaling Group...$(NC)"
-	@cd $(ASG_DIR)/06-asg && terragrunt apply
+	@echo "$(BLUE)🏗️ [3/6] Deploying Auto Scaling Group...$(NC)"
+	@cd $(ASG_DIR)/03-asg && terragrunt apply
 	@echo "$(GREEN)✅ ASG deployed$(NC)"
 	@echo "$(YELLOW)⏳ Waiting for instances to become healthy...$(NC)"
 	@sleep 30
@@ -197,29 +226,29 @@ deploy-asg-only: check-image ## Deploy Auto Scaling Group (without prerequisites
 
 plan-cloudwatch: ## Plan CloudWatch alarms
 	@echo "$(BLUE)📋 Planning CloudWatch alarms...$(NC)"
-	@cd $(ASG_DIR)/07-cloudwatch && terragrunt plan
+	@cd $(ASG_DIR)/04-cloudwatch && terragrunt plan
 
 deploy-cloudwatch: ## Deploy CloudWatch alarms
-	@echo "$(BLUE)🏗️ [7/9] Deploying CloudWatch alarms...$(NC)"
-	@cd $(ASG_DIR)/07-cloudwatch && terragrunt apply
+	@echo "$(BLUE)🏗️ [4/6] Deploying CloudWatch alarms...$(NC)"
+	@cd $(ASG_DIR)/04-cloudwatch && terragrunt apply
 	@echo "$(GREEN)✅ CloudWatch alarms deployed$(NC)"
 
 plan-eventbridge: ## Plan EventBridge rules
 	@echo "$(BLUE)📋 Planning EventBridge rules...$(NC)"
-	@cd $(ASG_DIR)/08-eventbridge && terragrunt plan
+	@cd $(ASG_DIR)/05-eventbridge && terragrunt plan
 
 deploy-eventbridge: ## Deploy EventBridge rules
-	@echo "$(BLUE)🏗️ [8/9] Deploying EventBridge rules...$(NC)"
-	@cd $(ASG_DIR)/08-eventbridge && terragrunt apply
+	@echo "$(BLUE)🏗️ [5/6] Deploying EventBridge rules...$(NC)"
+	@cd $(ASG_DIR)/05-eventbridge && terragrunt apply
 	@echo "$(GREEN)✅ EventBridge rules deployed$(NC)"
 
 plan-dashboard: ## Plan CloudWatch dashboard
 	@echo "$(BLUE)📋 Planning CloudWatch dashboard...$(NC)"
-	@cd $(ASG_DIR)/09-dashboard && terragrunt plan
+	@cd $(ASG_DIR)/06-dashboard && terragrunt plan
 
 deploy-dashboard: ## Deploy CloudWatch dashboard
-	@echo "$(BLUE)🏗️ [9/9] Deploying CloudWatch dashboard...$(NC)"
-	@cd $(ASG_DIR)/09-dashboard && terragrunt apply
+	@echo "$(BLUE)🏗️ [6/6] Deploying CloudWatch dashboard...$(NC)"
+	@cd $(ASG_DIR)/06-dashboard && terragrunt apply
 	@echo "$(GREEN)✅ Dashboard deployed$(NC)"
 	@$(MAKE) dashboard
 
@@ -375,49 +404,49 @@ destroy: ## Destroy all infrastructure
 destroy-sequential: ## Destroy stacks in reverse order (safer)
 	@echo "$(RED)🗑️ Destroying infrastructure in reverse order...$(NC)"
 	@read -p "Are you sure? Type 'yes' to confirm: " confirm && [ "$$confirm" = "yes" ] || (echo "Aborted" && exit 1)
-	@cd $(ASG_DIR)/09-dashboard && terragrunt destroy -auto-approve || true
-	@cd $(ASG_DIR)/08-eventbridge && terragrunt destroy -auto-approve || true
-	@cd $(ASG_DIR)/07-cloudwatch && terragrunt destroy -auto-approve || true
-	@cd $(ASG_DIR)/06-asg && terragrunt destroy -auto-approve || true
-	@cd $(ASG_DIR)/05-alb && terragrunt destroy -auto-approve || true
-	@cd $(ASG_DIR)/04-instance-sg && terragrunt destroy -auto-approve || true
-	@cd $(ASG_DIR)/03-security-groups && terragrunt destroy -auto-approve || true
-	@cd $(ASG_DIR)/02-networking && terragrunt destroy -auto-approve || true
+	@cd $(ASG_DIR)/06-dashboard && terragrunt destroy -auto-approve || true
+	@cd $(ASG_DIR)/05-eventbridge && terragrunt destroy -auto-approve || true
+	@cd $(ASG_DIR)/04-cloudwatch && terragrunt destroy -auto-approve || true
+	@cd $(ASG_DIR)/03-asg && terragrunt destroy -auto-approve || true
+	@cd $(SHARED_INFRA_DIR)/03-alb && terragrunt destroy -auto-approve || true
+	@cd $(ASG_DIR)/02-instance-sg && terragrunt destroy -auto-approve || true
+	@cd $(SHARED_INFRA_DIR)/02-alb-sg && terragrunt destroy -auto-approve || true
+	@cd $(SHARED_INFRA_DIR)/01-networking && terragrunt destroy -auto-approve || true
 	@cd $(ASG_DIR)/01-iam && terragrunt destroy -auto-approve || true
 
 ##@ Individual Stack Destroy
 
 destroy-dashboard: ## Destroy CloudWatch dashboard
 	@echo "$(RED)🗑️ Destroying dashboard...$(NC)"
-	@cd $(ASG_DIR)/09-dashboard && terragrunt destroy -auto-approve
+	@cd $(ASG_DIR)/06-dashboard && terragrunt destroy -auto-approve
 
 destroy-eventbridge: ## Destroy EventBridge rules
 	@echo "$(RED)🗑️ Destroying EventBridge...$(NC)"
-	@cd $(ASG_DIR)/08-eventbridge && terragrunt destroy -auto-approve
+	@cd $(ASG_DIR)/05-eventbridge && terragrunt destroy -auto-approve
 
 destroy-cloudwatch: ## Destroy CloudWatch alarms
 	@echo "$(RED)🗑️ Destroying CloudWatch alarms...$(NC)"
-	@cd $(ASG_DIR)/07-cloudwatch && terragrunt destroy -auto-approve
+	@cd $(ASG_DIR)/04-cloudwatch && terragrunt destroy -auto-approve
 
 destroy-asg: ## Destroy Auto Scaling Group
 	@echo "$(RED)🗑️ Destroying ASG...$(NC)"
-	@cd $(ASG_DIR)/06-asg && terragrunt destroy -auto-approve
+	@cd $(ASG_DIR)/03-asg && terragrunt destroy -auto-approve
 
-destroy-alb: ## Destroy Application Load Balancer
+destroy-alb: ## Destroy Application Load Balancer (shared infrastructure)
 	@echo "$(RED)🗑️ Destroying ALB...$(NC)"
-	@cd $(ASG_DIR)/05-alb && terragrunt destroy -auto-approve
+	@cd $(SHARED_INFRA_DIR)/03-alb && terragrunt destroy -auto-approve
 
 destroy-instance-sg: ## Destroy instance security group
 	@echo "$(RED)🗑️ Destroying instance security group...$(NC)"
-	@cd $(ASG_DIR)/04-instance-sg && terragrunt destroy -auto-approve
+	@cd $(ASG_DIR)/02-instance-sg && terragrunt destroy -auto-approve
 
-destroy-security-groups: ## Destroy ALB security group
+destroy-security-groups: ## Destroy ALB security group (shared infrastructure)
 	@echo "$(RED)🗑️ Destroying ALB security group...$(NC)"
-	@cd $(ASG_DIR)/03-security-groups && terragrunt destroy -auto-approve
+	@cd $(SHARED_INFRA_DIR)/02-alb-sg && terragrunt destroy -auto-approve
 
-destroy-networking: ## Destroy VPC and networking
+destroy-networking: ## Destroy VPC and networking (shared infrastructure)
 	@echo "$(RED)🗑️ Destroying networking (NAT Gateway will be removed)...$(NC)"
-	@cd $(ASG_DIR)/02-networking && terragrunt destroy -auto-approve
+	@cd $(SHARED_INFRA_DIR)/01-networking && terragrunt destroy -auto-approve
 
 destroy-iam: ## Destroy IAM instance profile
 	@echo "$(RED)🗑️ Destroying IAM...$(NC)"
@@ -459,13 +488,11 @@ step-by-step: ## Interactive step-by-step deployment guide
 	@echo "  make plan-iam        # Preview changes"
 	@echo "  make deploy-iam      # Apply"
 	@echo ""
-	@echo "$(YELLOW)Step 3: Deploy Networking (VPC)$(NC)"
-	@echo "  make plan-networking"
-	@echo "  make deploy-networking"
+	@echo "$(YELLOW)Step 3: Deploy Shared Infrastructure (VPC, ALB)$(NC)"
+	@echo "  make plan-shared-infra   # Preview all shared components"
+	@echo "  make deploy-shared-infra # Deploy networking + ALB (shared by EC2/ECS/EKS)"
 	@echo ""
-	@echo "$(YELLOW)Step 4: Deploy Security Groups$(NC)"
-	@echo "  make plan-security-groups"
-	@echo "  make deploy-security-groups"
+	@echo "$(YELLOW)Step 4: Deploy EC2 Instance Security Group$(NC)"
 	@echo "  make plan-instance-sg"
 	@echo "  make deploy-instance-sg"
 	@echo ""
@@ -476,15 +503,12 @@ step-by-step: ## Interactive step-by-step deployment guide
 	@echo "$(YELLOW)Step 6: Build Docker image$(NC)"
 	@echo "  make build           # Build and push to ECR"
 	@echo ""
-	@echo "$(YELLOW)Step 7: Deploy ALB$(NC)"
-	@echo "  make plan-alb"
-	@echo "  make deploy-alb"
-	@echo ""
-	@echo "$(YELLOW)Step 8: Deploy ASG$(NC)"
+	@echo "$(YELLOW)Step 7: Deploy ASG$(NC)"
+	@echo "  (ALB already deployed in Step 3 as shared infrastructure)"
 	@echo "  make plan-asg"
-	@echo "  make deploy-asg      # Will auto-check image exists"
+	@echo "  make deploy-asg-only  # Will auto-check image exists"
 	@echo ""
-	@echo "$(YELLOW)Step 9: Deploy Monitoring$(NC)"
+	@echo "$(YELLOW)Step 8: Deploy Monitoring$(NC)"
 	@echo "  make plan-cloudwatch"
 	@echo "  make deploy-cloudwatch"
 	@echo "  make plan-eventbridge"
@@ -492,7 +516,7 @@ step-by-step: ## Interactive step-by-step deployment guide
 	@echo "  make plan-dashboard"
 	@echo "  make deploy-dashboard"
 	@echo ""
-	@echo "$(YELLOW)Step 10: (Optional) Deploy CodeBuild$(NC)"
+	@echo "$(YELLOW)Step 9: (Optional) Deploy CodeBuild$(NC)"
 	@echo "  make plan-codebuild"
 	@echo "  make deploy-codebuild"
 	@echo ""

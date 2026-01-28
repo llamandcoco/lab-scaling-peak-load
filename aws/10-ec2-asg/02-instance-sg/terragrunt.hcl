@@ -13,11 +13,21 @@ locals {
 }
 
 dependency "net" {
-  config_path = "../02-networking"
+  config_path = "../../00-shared-infra/01-networking"
+
+  mock_outputs = {
+    vpc_id = "vpc-mock123456"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
 }
 
 dependency "alb_sg" {
-  config_path = "../03-security-groups"
+  config_path = "../../00-shared-infra/02-alb-sg"
+
+  mock_outputs = {
+    security_group_id = "sg-mock123456"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
 }
 
 inputs = {

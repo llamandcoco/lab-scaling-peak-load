@@ -1,5 +1,5 @@
 terraform {
-  source = "../../../../infra-modules/terraform/alb"
+  source = "github.com/llamandcoco/infra-modules//terraform/alb?ref=${local.common.alb_ref}"
 }
 
 include {
@@ -7,15 +7,28 @@ include {
 }
 
 dependency "net" {
-  config_path = "../02-networking"
+  config_path = "../01-networking"
+
+  mock_outputs = {
+    vpc_id             = "vpc-mock123456"
+    public_subnet_ids  = ["subnet-mock1", "subnet-mock2"]
+    private_subnet_ids = ["subnet-mock3", "subnet-mock4"]
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
 }
 
 dependency "alb_sg" {
-  config_path = "../03-security-groups"
+  config_path = "../02-alb-sg"
+
+  mock_outputs = {
+    security_group_id = "sg-mock123456"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
 }
 
 locals {
   parent_locals = read_terragrunt_config(find_in_parent_folders("root.hcl")).locals
+  common        = read_terragrunt_config("../_env_common.hcl").locals
   env           = local.parent_locals.env
   app           = local.parent_locals.app
 }
@@ -44,7 +57,7 @@ inputs = {
     name             = "lab-tg"
     port             = 80
     protocol         = "HTTP"
-    target_type      = "instance"
+    target_type      = "instance"  # Required for EC2 ASG compatibility
     health_check = {
       path                = "/healthz"
       matcher             = "200-399"

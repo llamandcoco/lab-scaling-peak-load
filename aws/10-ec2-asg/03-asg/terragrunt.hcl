@@ -7,19 +7,43 @@ include {
 }
 
 dependency "alb" {
-  config_path = "../05-alb"
+  config_path = "../../00-shared-infra/03-alb"
+
+  mock_outputs = {
+    alb_arn                  = "arn:aws:elasticloadbalancing:ca-central-1:123456789012:loadbalancer/app/mock-alb/1234567890abcdef"
+    alb_arn_suffix           = "app/mock-alb/1234567890abcdef"
+    target_group_arns        = { "lab-tg" = "arn:aws:elasticloadbalancing:ca-central-1:123456789012:targetgroup/lab-tg/1234567890abcdef" }
+    target_group_arn_suffixes = { "lab-tg" = "targetgroup/lab-tg/1234567890abcdef" }
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
 }
 
 dependency "net" {
-  config_path = "../02-networking"
+  config_path = "../../00-shared-infra/01-networking"
+
+  mock_outputs = {
+    vpc_id              = "vpc-mock123456"
+    private_subnet_ids  = ["subnet-mock1", "subnet-mock2"]
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
 }
 
 dependency "inst_sg" {
-  config_path = "../04-instance-sg"
+  config_path = "../02-instance-sg"
+
+  mock_outputs = {
+    security_group_id = "sg-mock-instance"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
 }
 
 dependency "iam" {
   config_path = "../01-iam"
+
+  mock_outputs = {
+    instance_profile_name = "mock-instance-profile"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
 }
 
 locals {
