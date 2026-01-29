@@ -8,6 +8,11 @@ include {
 
 dependency "cluster" {
   config_path = "../03-ecs-cluster"
+
+  mock_outputs = {
+    cluster_id = "arn:aws:ecs:ca-central-1:123456789012:cluster/mock-ecs-cluster"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy"]
 }
 
 dependency "net" {
@@ -42,10 +47,20 @@ dependency "tg" {
 
 dependency "iam" {
   config_path = "../01-iam"
+
+  mock_outputs = {
+    role_arn = "arn:aws:iam::123456789012:role/mock-ecs-execution-role"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy"]
 }
 
 dependency "task_sg" {
   config_path = "../02-task-sg"
+
+  mock_outputs = {
+    security_group_id = "sg-mock-ecs-task"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy"]
 }
 
 locals {

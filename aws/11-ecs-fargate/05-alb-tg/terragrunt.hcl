@@ -50,13 +50,6 @@ inputs = {
 
   listener_arn      = try(dependency.alb.outputs.http_listener_arn, dependency.alb.outputs.listener_arns["80"])
   listener_priority = 10
-  listener_conditions = [
-    {
-      host_header = {
-        values = ["ecs.local"]
-      }
-    }
-  ]
 
   tags = {
     Environment = local.env
