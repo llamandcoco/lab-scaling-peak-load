@@ -12,10 +12,18 @@ dependency "alb" {
   mock_outputs = {
     alb_arn                  = "arn:aws:elasticloadbalancing:ca-central-1:123456789012:loadbalancer/app/mock-alb/1234567890abcdef"
     alb_arn_suffix           = "app/mock-alb/1234567890abcdef"
-    target_group_arns        = { "lab-tg" = "arn:aws:elasticloadbalancing:ca-central-1:123456789012:targetgroup/lab-tg/1234567890abcdef" }
-    target_group_arn_suffixes = { "lab-tg" = "targetgroup/lab-tg/1234567890abcdef" }
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy"]
+}
+
+dependency "tg" {
+  config_path = "../05-alb-tg"
+
+  mock_outputs = {
+    target_group_arn        = "arn:aws:elasticloadbalancing:ca-central-1:123456789012:targetgroup/mock-ec2-tg/1234567890abcdef"
+    target_group_arn_suffix = "targetgroup/mock-ec2-tg/1234567890abcdef"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy"]
 }
 
 dependency "net" {
@@ -25,7 +33,7 @@ dependency "net" {
     vpc_id              = "vpc-mock123456"
     private_subnet_ids  = ["subnet-mock1", "subnet-mock2"]
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy"]
 }
 
 dependency "inst_sg" {
@@ -34,7 +42,7 @@ dependency "inst_sg" {
   mock_outputs = {
     security_group_id = "sg-mock-instance"
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy"]
 }
 
 dependency "iam" {
@@ -43,7 +51,7 @@ dependency "iam" {
   mock_outputs = {
     instance_profile_name = "mock-instance-profile"
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy"]
 }
 
 locals {

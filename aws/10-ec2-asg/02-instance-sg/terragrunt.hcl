@@ -18,7 +18,7 @@ dependency "net" {
   mock_outputs = {
     vpc_id = "vpc-mock123456"
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy"]
 }
 
 dependency "alb_sg" {
@@ -27,7 +27,7 @@ dependency "alb_sg" {
   mock_outputs = {
     security_group_id = "sg-mock123456"
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy"]
 }
 
 inputs = {

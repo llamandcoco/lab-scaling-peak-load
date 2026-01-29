@@ -1,5 +1,5 @@
 terraform {
-  source = "github.com/llamandcoco/infra-modules//terraform/alb-target-group?ref=0898480e0b53706aac5bc549f26f4935fa8e2384"
+  source = "github.com/llamandcoco/infra-modules//terraform/alb-target-group?ref=main"
 }
 
 include {

@@ -8,6 +8,12 @@ This lab explores how EC2 Auto Scaling responds to sudden traffic spikes.
 The goal was to observe real scale-out behavior under sustained load, rather than relying on theoretical tuning.
 Different instance launch strategies were compared to understand their impact on failure rate and latency.
 
+## Quick Commands
+
+- Deploy shared infra + full EC2 ASG stack: `make deploy-ec2-asg-all`
+- Deploy only 10-ec2-asg stacks: `make deploy-ec2-asg`
+- Deploy only ASG: `make deploy-asg`
+
 ## Continuous Integration
 
 ![Continuous Integration](./images/00-continuous-integration.png)

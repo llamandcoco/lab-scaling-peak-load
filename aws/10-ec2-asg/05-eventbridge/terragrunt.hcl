@@ -12,7 +12,7 @@ dependency "asg" {
   mock_outputs = {
     asg_name = "mock-asg-name"
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy"]
 }
 
 inputs = {

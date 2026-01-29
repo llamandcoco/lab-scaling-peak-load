@@ -12,7 +12,7 @@ dependency "asg" {
   mock_outputs = {
     asg_name = "mock-asg-name"
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy"]
 }
 
 dependency "alb" {
@@ -21,10 +21,17 @@ dependency "alb" {
   mock_outputs = {
     alb_arn                  = "arn:aws:elasticloadbalancing:ca-central-1:123456789012:loadbalancer/app/mock-alb/1234567890abcdef"
     alb_arn_suffix           = "app/mock-alb/1234567890abcdef"
-    target_group_arns        = { "lab-tg" = "arn:aws:elasticloadbalancing:ca-central-1:123456789012:targetgroup/lab-tg/1234567890abcdef" }
-    target_group_arn_suffixes = { "lab-tg" = "targetgroup/lab-tg/1234567890abcdef" }
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy"]
+}
+
+dependency "tg" {
+  config_path = "../05-alb-tg"
+
+  mock_outputs = {
+    target_group_arn_suffix = "targetgroup/mock-ec2-tg/1234567890abcdef"
+  }
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy"]
 }
 
 dependency "eb" {
@@ -33,7 +40,7 @@ dependency "eb" {
   mock_outputs = {
     log_group_name = "/aws/events/lab-scaling-mock"
   }
-  mock_outputs_allowed_terraform_commands = ["validate", "plan"]
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "destroy"]
 }
 
 locals { 
