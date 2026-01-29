@@ -59,8 +59,8 @@ inputs = {
   vpc_subnet_ids   = dependency.net.outputs.private_subnet_ids
 
   # Attach ALB TG from dependency
-  target_group_arns = try([dependency.alb.outputs.target_group_arns["lab-tg"]], [])
-  alb_target_group_resource_label = "${dependency.alb.outputs.alb_arn_suffix}/${dependency.alb.outputs.target_group_arn_suffixes["lab-tg"]}"
+  target_group_arns = try([dependency.tg.outputs.target_group_arn], [])
+  alb_target_group_resource_label = "${dependency.alb.outputs.alb_arn_suffix}/${dependency.tg.outputs.target_group_arn_suffix}"
 
   min_size         = 1
   max_size         = 6
@@ -149,7 +149,7 @@ inputs = {
   # RPS-based scaling (ALBRequestCountPerTarget)
   enable_target_tracking_alb = true
   alb_target_value           = 100  # target 100 RPS per instance
-  alb_target_group_arn       = try(dependency.alb.outputs.target_group_arns["lab-tg"], null)
+  alb_target_group_arn       = try(dependency.tg.outputs.target_group_arn, null)
 
   # Memory-based alarm for manual step scaling (optional)
   enable_memory_alarm     = true

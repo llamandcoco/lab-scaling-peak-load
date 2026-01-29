@@ -6,7 +6,7 @@ locals {
   name_prefix          = "lab-auto-scaling"
 
   # Module version references
-  networking_ref      = "main"
-  security_group_ref  = "main"
+  networking_ref     = "main"
+  security_group_ref = "main"
   alb_ref            = "main"
 }
