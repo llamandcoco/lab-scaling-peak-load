@@ -46,25 +46,16 @@ inputs = {
     protocol = "HTTP"
     
     default_action = {
-      type              = "forward"
-      target_group_name = "lab-tg"
+      type              = "fixed-response"
+      target_group_name = null
       redirect          = null
-      fixed_response    = null
+      fixed_response = {
+        content_type = "text/plain"
+        message_body = "No target group configured"
+        status_code  = "404"
+      }
     }
   }]
 
-  target_groups = [{
-    name             = "lab-tg"
-    port             = 80
-    protocol         = "HTTP"
-    target_type      = "instance"  # Required for EC2 ASG compatibility
-    health_check = {
-      path                = "/healthz"
-      matcher             = "200-399"
-      interval            = 20
-      timeout             = 5
-      healthy_threshold   = 2
-      unhealthy_threshold = 2
-    }
-  }]
+  target_groups = []
 }

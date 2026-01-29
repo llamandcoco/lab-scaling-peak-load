@@ -27,10 +27,12 @@ inputs = {
   enable_dns_support       = true
   enable_dns_hostnames     = true
   map_public_ip_on_launch  = false
+  manage_default_nacl      = false  # Best practice: avoid managing default NACL
+  ignore_default_nacl_subnet_ids = true
 
   # ALB needs IGW, instances need NAT for ECR pulls
   internet_gateway_enabled = true
-  nat_gateway_mode         = "per_az"  # One NAT per AZ for HA (each AZ independent)
+  nat_gateway_mode         = "single"  # One NAT per AZ for HA (each AZ independent)
 
   # Kubernetes subnet tags for EKS/ALB discovery
   private_subnet_tags = {

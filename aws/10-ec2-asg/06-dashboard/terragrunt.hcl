@@ -110,9 +110,9 @@ inputs = {
       height = 6
       properties = {
         metrics = [
-          ["AWS/ApplicationELB", "HTTPCode_Target_2XX_Count", "TargetGroup", dependency.alb.outputs.target_group_arn_suffixes["lab-tg"], "LoadBalancer", dependency.alb.outputs.alb_arn_suffix, { stat = "Sum", label = "2xx" }],
-          [".", "HTTPCode_Target_4XX_Count", "TargetGroup", dependency.alb.outputs.target_group_arn_suffixes["lab-tg"], "LoadBalancer", dependency.alb.outputs.alb_arn_suffix, { stat = "Sum", label = "4xx" }],
-          [".", "HTTPCode_Target_5XX_Count", "TargetGroup", dependency.alb.outputs.target_group_arn_suffixes["lab-tg"], "LoadBalancer", dependency.alb.outputs.alb_arn_suffix, { stat = "Sum", label = "5xx" }]
+          ["AWS/ApplicationELB", "HTTPCode_Target_2XX_Count", "TargetGroup", dependency.tg.outputs.target_group_arn_suffix, "LoadBalancer", dependency.alb.outputs.alb_arn_suffix, { stat = "Sum", label = "2xx" }],
+          [".", "HTTPCode_Target_4XX_Count", "TargetGroup", dependency.tg.outputs.target_group_arn_suffix, "LoadBalancer", dependency.alb.outputs.alb_arn_suffix, { stat = "Sum", label = "4xx" }],
+          [".", "HTTPCode_Target_5XX_Count", "TargetGroup", dependency.tg.outputs.target_group_arn_suffix, "LoadBalancer", dependency.alb.outputs.alb_arn_suffix, { stat = "Sum", label = "5xx" }]
         ]
         period = 60
         stat   = "Sum"
@@ -130,8 +130,8 @@ inputs = {
       height = 6
       properties = {
         metrics = [
-          ["AWS/ApplicationELB", "HealthyHostCount", "TargetGroup", dependency.alb.outputs.target_group_arn_suffixes["lab-tg"], "LoadBalancer", dependency.alb.outputs.alb_arn_suffix, { stat = "Average", label = "Healthy Targets" }],
-          [".", "UnHealthyHostCount", "TargetGroup", dependency.alb.outputs.target_group_arn_suffixes["lab-tg"], "LoadBalancer", dependency.alb.outputs.alb_arn_suffix, { stat = "Average", label = "Unhealthy Targets" }]
+          ["AWS/ApplicationELB", "HealthyHostCount", "TargetGroup", dependency.tg.outputs.target_group_arn_suffix, "LoadBalancer", dependency.alb.outputs.alb_arn_suffix, { stat = "Average", label = "Healthy Targets" }],
+          [".", "UnHealthyHostCount", "TargetGroup", dependency.tg.outputs.target_group_arn_suffix, "LoadBalancer", dependency.alb.outputs.alb_arn_suffix, { stat = "Average", label = "Unhealthy Targets" }]
         ]
         period = 60
         stat   = "Average"
